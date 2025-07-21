@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { ordersAPI } from '../services/api';
 import { User, Package, TrendingUp, Heart, Calendar, Clock } from 'lucide-react';
 
 interface Order {
@@ -30,17 +31,24 @@ const CustomerDashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      fetchUserOrders();
+      loadUserOrders();
     }
   }, [user]);
 
-  const fetchUserOrders = async () => {
+  const loadUserOrders = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/orders/user/${user?.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data);
-        calculateStats(data);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const response = await ordersAPI.getUserOrders(token);
+      if (response.success) {
+        setOrders(response.data);
+        calculateStats(response.data);
+      } else {
+        console.error('Failed to fetch orders:', response.message);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -51,20 +59,27 @@ const CustomerDashboard: React.FC = () => {
 
   const calculateStats = (orders: Order[]) => {
     const totalOrders = orders.length;
-    const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+    const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.total?.toString() || '0'), 0);
     const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
     
     // Calculate favorite item
     const itemCounts: { [key: string]: number } = {};
     orders.forEach(order => {
-      try {
-        const items = JSON.parse(order.items);
-        items.forEach((item: any) => {
-          const itemName = item.name || item.item_name || 'Unknown Item';
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item: any) => {
+          const itemName = item.item_name || item.name || 'Unknown Item';
           itemCounts[itemName] = (itemCounts[itemName] || 0) + (item.quantity || 1);
         });
-      } catch (e) {
-        console.error('Error parsing order items:', e);
+      } else if (typeof order.items === 'string') {
+        try {
+          const items = JSON.parse(order.items);
+          items.forEach((item: any) => {
+            const itemName = item.item_name || item.name || 'Unknown Item';
+            itemCounts[itemName] = (itemCounts[itemName] || 0) + (item.quantity || 1);
+          });
+        } catch (e) {
+          console.error('Error parsing order items:', e);
+        }
       }
     });
 
@@ -101,9 +116,19 @@ const CustomerDashboard: React.FC = () => {
 
   const handleReorder = async (order: Order) => {
     try {
-      const items = JSON.parse(order.items);
-      // Add items to cart logic here
-      console.log('Reordering items:', items);
+      let items = [];
+      if (Array.isArray(order.items)) {
+        items.forEach((item: any) => {
+          // Add logic to add items to cart
+          console.log('Adding to cart:', item);
+        });
+      } else if (typeof order.items === 'string') {
+        items = JSON.parse(order.items);
+        items.forEach((item: any) => {
+          // Add logic to add items to cart
+          console.log('Adding to cart:', item);
+        });
+      }
     } catch (error) {
       console.error('Error reordering:', error);
     }
@@ -220,32 +245,27 @@ const CustomerDashboard: React.FC = () => {
                   </div>
 
                   <div className="mb-4">
-                    {(() => {
-                      try {
-                        const items = JSON.parse(order.items);
-                        return (
-                          <div className="space-y-2">
-                            {items.map((item: any, index: number) => (
-                              <div key={index} className="flex justify-between items-center">
-                                <span className="text-gray-700">
-                                  {item.name || item.item_name || 'Unknown Item'} x{item.quantity || 1}
-                                </span>
-                                <span className="text-gray-900 font-medium">
-                                  ₹{((item.price || 0) * (item.quantity || 1)).toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
+                    <div className="space-y-2">
+                      {Array.isArray(order.items) ? (
+                        order.items.map((item: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center">
+                            <span className="text-gray-700">
+                              {item.item_name || item.name || 'Unknown Item'} x{item.quantity || 1}
+                            </span>
+                            <span className="text-gray-900 font-medium">
+                              ₹{((parseFloat(item.price) || 0) * (item.quantity || 1)).toFixed(2)}
+                            </span>
                           </div>
-                        );
-                      } catch (e) {
-                        return <p className="text-gray-600">Order details unavailable</p>;
-                      }
-                    })()}
+                        ))
+                      ) : (
+                        <p className="text-gray-600">Order details unavailable</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-bold text-gray-900">
-                      Total: ₹{parseFloat(order.total.toString()).toFixed(2)}
+                      Total: ₹{parseFloat(order.total?.toString() || '0').toFixed(2)}
                     </div>
                     <button
                       onClick={() => handleReorder(order)}

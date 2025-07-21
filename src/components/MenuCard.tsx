@@ -1,7 +1,8 @@
 import React from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Heart } from 'lucide-react';
 import { MenuItem } from '../types';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 interface MenuCardProps {
   item: MenuItem;
@@ -9,6 +10,8 @@ interface MenuCardProps {
 
 const MenuCard: React.FC<MenuCardProps> = ({ item }) => {
   const { state, dispatch } = useCart();
+  const { user } = useAuth();
+  const [isFavorite, setIsFavorite] = React.useState(false);
   
   const cartItem = state.items.find(cartItem => cartItem.id === item.id);
   const quantity = cartItem?.quantity || 0;
@@ -21,6 +24,11 @@ const MenuCard: React.FC<MenuCardProps> = ({ item }) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id: item.id, quantity: newQuantity } });
   };
 
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+    // Here you can add API call to save favorite to user profile
+    console.log(`${isFavorite ? 'Removed from' : 'Added to'} favorites:`, item.name);
+  };
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-500 group enhanced-hover card-hover animate-zoom-in">
       <div className="relative">
@@ -32,6 +40,18 @@ const MenuCard: React.FC<MenuCardProps> = ({ item }) => {
         <div className="absolute top-2 right-2 bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg animate-bounce-custom hover-tada">
           ₹{item.price}
         </div>
+        {user && (
+          <button
+            onClick={toggleFavorite}
+            className={`absolute top-2 left-2 p-2 rounded-full transition-all duration-300 ${
+              isFavorite 
+                ? 'bg-red-500 text-white' 
+                : 'bg-white/80 text-gray-600 hover:bg-red-500 hover:text-white'
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </div>
       
