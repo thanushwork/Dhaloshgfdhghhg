@@ -108,9 +108,11 @@ const AdminPage: React.FC = () => {
         );
         // Reload stats
         loadDashboardData();
+        console.log(`Order ${orderId} status updated to ${newStatus}`);
       }
     } catch (error) {
       console.error('Error updating order status:', error);
+      alert('Error updating order status. Please try again.');
     } finally {
       setUpdatingOrder(null);
     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Filter, Clock, Star } from 'lucide-react';
-import { menuItems } from '../data/menuItems';
+import { menuAPI } from '../services/api';
 import MenuCard from './MenuCard';
 import HeroSection from './HeroSection';
 import AboutSection from './AboutSection';
@@ -10,6 +10,26 @@ import ReviewsSection from './ReviewsSection';
 const HomePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load menu items from database
+  React.useEffect(() => {
+    loadMenuItems();
+  }, []);
+
+  const loadMenuItems = async () => {
+    try {
+      const response = await menuAPI.getMenuItems();
+      if (response.success) {
+        setMenuItems(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading menu items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category)))];
 
@@ -66,6 +86,13 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading menu items...</p>
+            </div>
+          ) : (
+            <>
           {/* Menu Items */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredItems.map((item, index) => (
@@ -82,6 +109,8 @@ const HomePage: React.FC = () => {
                 <p className="text-gray-400">Try adjusting your search terms or category filter.</p>
               </div>
             </div>
+          )}
+            </>
           )}
         </div>
       </section>

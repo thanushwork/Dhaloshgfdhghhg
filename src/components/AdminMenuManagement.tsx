@@ -51,9 +51,11 @@ const AdminMenuManagement: React.FC = () => {
         setMenuItems([...menuItems, response.data]);
         setShowAddForm(false);
         setFormData({ name: '', price: '', category: '', description: '', image: '' });
+        alert('Menu item added successfully!');
       }
     } catch (error) {
       console.error('Error adding menu item:', error);
+      alert('Error adding menu item. Please try again.');
     }
   };
 
@@ -68,9 +70,11 @@ const AdminMenuManagement: React.FC = () => {
           item.id === itemId ? { ...item, ...updatedData } : item
         ));
         setEditingItem(null);
+        alert('Menu item updated successfully!');
       }
     } catch (error) {
       console.error('Error updating menu item:', error);
+      alert('Error updating menu item. Please try again.');
     }
   };
 
@@ -84,9 +88,12 @@ const AdminMenuManagement: React.FC = () => {
       const response = await menuAPI.deleteMenuItem(token, itemId);
       if (response.success) {
         setMenuItems(menuItems.filter(item => item.id !== itemId));
+        // Show success message
+        alert('Menu item deleted successfully!');
       }
     } catch (error) {
       console.error('Error deleting menu item:', error);
+      alert('Error deleting menu item. Please try again.');
     }
   };
 

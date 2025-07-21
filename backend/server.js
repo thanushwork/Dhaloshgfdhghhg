@@ -374,6 +374,30 @@ app.get('/api/orders/stats', authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
+// Update order status
+app.put('/api/orders/:id/status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'completed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    await pool.execute(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      [status, id]
+    );
+
+    res.json({ success: true, message: 'Order status updated successfully' });
+  } catch (error) {
+    console.error('Order status update error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // WhatsApp notification endpoint
 app.post('/api/whatsapp/order-notification', async (req, res) => {
   try {
