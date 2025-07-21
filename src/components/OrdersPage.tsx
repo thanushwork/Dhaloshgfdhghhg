@@ -39,7 +39,20 @@ const OrdersPage: React.FC = () => {
 
   const reorderItems = (items: any[]) => {
     items.forEach(item => {
-      dispatch({ type: 'ADD_ITEM', payload: item });
+      // Convert order item back to menu item format
+      const menuItem = {
+        id: item.menu_item_id || item.id,
+        name: item.item_name || item.name,
+        price: parseFloat(item.price),
+        category: item.category || 'Unknown',
+        description: item.description || '',
+        image: item.image || 'https://images.pexels.com/photos/2474661/pexels-photo-2474661.jpeg?auto=compress&cs=tinysrgb&w=400'
+      };
+      
+      // Add the item multiple times based on quantity
+      for (let i = 0; i < parseInt(item.quantity); i++) {
+        dispatch({ type: 'ADD_ITEM', payload: menuItem });
+      }
     });
   };
 

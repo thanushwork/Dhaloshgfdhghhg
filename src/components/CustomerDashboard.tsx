@@ -39,20 +39,25 @@ const CustomerDashboard: React.FC = () => {
 
   const calculateStats = (orderData: any[]) => {
     const totalOrders = orderData.length;
-    const totalSpent = orderData.reduce((sum, order) => sum + order.total, 0);
-    const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
+    const totalSpent = orderData.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
+    const avgOrderValue = totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0;
     
     // Find most ordered item
     const itemCounts: { [key: string]: number } = {};
     orderData.forEach(order => {
       order.items?.forEach((item: any) => {
-        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+        const itemName = item.item_name || item.name;
+        if (itemName) {
+          itemCounts[itemName] = (itemCounts[itemName] || 0) + parseInt(item.quantity || 0);
+        }
       });
     });
     
-    const favoriteItem = Object.keys(itemCounts).reduce((a, b) => 
-      itemCounts[a] > itemCounts[b] ? a : b, 'Chicken Rice'
-    );
+    const favoriteItem = Object.keys(itemCounts).length > 0 
+      ? Object.keys(itemCounts).reduce((a, b) => 
+          itemCounts[a] > itemCounts[b] ? a : b
+        )
+      : 'No orders yet';
 
     setStats({
       totalOrders,
@@ -187,7 +192,12 @@ const CustomerDashboard: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">Order #{order.id}</h3>
                     <p className="text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                      {order.created_at ? 
+                        new Date(order.created_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) + 
+                        ' at ' + 
+                        new Date(order.created_at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
+                        : 'Date not available'
+                      }
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -199,30 +209,30 @@ const CustomerDashboard: React.FC = () => {
                 <div className="space-y-2 mb-4">
                   {order.items?.map((item: any, index: number) => (
                     <div key={index} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-900">{item.name} x{item.quantity}</span>
-                      <span className="text-gray-600">₹{item.price * item.quantity}</span>
+                      <span className="text-gray-900">{item.item_name || item.name} x{item.quantity}</span>
+                      <span className="text-gray-600">₹{(parseFloat(item.price) * parseInt(item.quantity)).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
                 
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="flex items-center space-x-4">
-                    <span className="text-lg font-semibold text-gray-900">Total: ₹{order.total}</span>
+                    <span className="text-lg font-semibold text-gray-900">Total: ₹{parseFloat(order.total).toFixed(2)}</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {order.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                      {order.payment_status === 'paid' ? 'Paid' : 'Pending'}
                     </span>
                   </div>
                   
                   <button
-                    onClick={() => reorderItems(order.items)}
+                    onClick={() => reorderItems(order.items || [])}
                     className="flex items-center space-x-2 text-orange-600 hover:text-orange-700 transition-colors"
                   >
                     <RotateCcw className="h-4 w-4" />
                     <span>Reorder</span>
                   </button>
-                </div>
+                <p className="text-2xl font-bold text-gray-900">₹{stats.avgOrderValue}</p>
               </div>
             ))}
           </div>

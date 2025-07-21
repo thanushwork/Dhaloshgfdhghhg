@@ -253,6 +253,15 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
     const { items, total, customerInfo } = req.body;
 
+    // Validate required fields
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Items are required' });
+    }
+    
+    if (!total || !customerInfo) {
+      return res.status(400).json({ success: false, message: 'Total and customer info are required' });
+    }
+
     // Create order
     const [orderResult] = await pool.execute(
       'INSERT INTO orders (user_id, total, customer_name, customer_phone, customer_email, payment_status) VALUES (?, ?, ?, ?, ?, ?)',
@@ -263,9 +272,18 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 
     // Insert order items
     for (const item of items) {
+      // Ensure all required fields are present
+      const menuItemId = item.menuItemId || item.id;
+      const itemName = item.itemName || item.name;
+      
+      if (!menuItemId || !item.quantity || !item.price || !itemName) {
+        console.error('Missing required item fields:', item);
+        continue; // Skip invalid items
+      }
+      
       await pool.execute(
         'INSERT INTO order_items (order_id, menu_item_id, quantity, price, item_name) VALUES (?, ?, ?, ?, ?)',
-        [orderId, item.menuItemId, item.quantity, item.price, item.itemName]
+        [orderId, menuItemId, item.quantity, item.price, itemName]
       );
     }
 
@@ -289,7 +307,7 @@ app.get('/api/orders/user', authenticateToken, async (req, res) => {
     // Get order items for each order
     for (let order of orders) {
       const [items] = await pool.execute(
-        'SELECT * FROM order_items WHERE order_id = ?',
+        'SELECT oi.*, mi.category, mi.description, mi.image FROM order_items oi LEFT JOIN menu_items mi ON oi.menu_item_id = mi.id WHERE oi.order_id = ?',
         [order.id]
       );
       order.items = items;

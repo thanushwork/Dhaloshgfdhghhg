@@ -104,10 +104,12 @@ DHALOESH FAST FOOD`;
       // Create order in database
       const orderData = {
         items: state.items.map(item => ({
-          menuItemId: item.id,
+          menuItemId: item.id || null,
+          id: item.id,
           quantity: item.quantity,
           price: item.price,
-          itemName: item.name
+          itemName: item.name,
+          name: item.name
         })),
         total: state.total,
         customerInfo
